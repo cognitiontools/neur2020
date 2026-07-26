@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Word Cloud Memory Recognition Task</title>
+
+  <script src="https://unpkg.com/jspsych@8.2.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-fullscreen@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
+  <link rel="stylesheet" href="https://unpkg.com/jspsych@8.2.3/css/jspsych.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #ffffff;
+      color: #1d2730;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    .jspsych-display-element {
+      font-size: 20px;
+    }
+
+    .page {
+      width: min(900px, 92vw);
+      margin: 0 auto;
+      padding: 30px 0;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 30px;
+      border: 1px solid #c9d1d8;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .06);
+      overflow: hidden;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin-top: 0;
+    }
+
+    p {
+      line-height: 1.55;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin: 26px 0;
+    }
+
+    .key-box {
+      padding: 22px;
+      border: 2px solid #6d7882;
+      border-radius: 10px;
+      background: #f5f7f9;
+      text-align: center;
+    }
+
+    .key {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 38px;
+      font-weight: 700;
+    }
+
+    .trial-screen {
+      text-align: center;
+    }
+
+    .trial-number {
+      margin-bottom: 18px;
+      font-size: 42px;
+      font-weight: 700;
+    }
+
+    .response-reminder {
+      margin: 26px 0;
+      font-size: 24px;
+    }
+
+    .progress {
+      margin-top: 18px;
+      color: #5d6872;
+      font-size: 16px;
+    }
+
+    .fixation {
+      font-size: 54px;
+      font-weight: 700;
+    }
+
+    .study-image {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      max-height: 60vh;
+      margin: 0 auto;
+      object-fit: contain;
+    }
+
+    .study-timer {
+      margin-top: 16px;
+      color: #5d6872;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .test-word {
+      display: flex;
+      min-height: 42vh;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-size: clamp(44px, 9vw, 92px);
+      font-weight: 700;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .touch-response-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 720px;
+      margin: 28px auto 12px;
+    }
+
+    .touch-response-button {
+      min-height: 105px;
+      padding: 16px;
+      border: 2px solid #245b87;
+      border-radius: 12px;
+      background: #245b87;
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .touch-response-button:active {
+      transform: scale(.98);
+      background: #194666;
+    }
+
+    .response-question {
+      margin: 20px 0;
+      font-size: 30px;
+      font-weight: 700;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 22px 0;
+    }
+
+    .metric {
+      padding: 14px;
+      border: 1px solid #c9d1d8;
+      border-radius: 9px;
+      background: #f5f7f9;
+      text-align: center;
+    }
+
+    .metric-label {
+      color: #5d6872;
+      font-size: 14px;
+    }
+
+    .metric-value {
+      margin-top: 5px;
+      font-size: 27px;
+      font-weight: 700;
+    }
+
+    .chart-wrap {
+      width: 100%;
+      margin: 18px 0 10px;
+      border: 1px solid #c9d1d8;
+      border-radius: 10px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    #sdtCanvas {
+      display: block;
+      width: 100%;
+      height: 420px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px 20px;
+      margin: 14px 0 24px;
+      font-size: 15px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .legend-swatch {
+      width: 18px;
+      height: 12px;
+      border: 1px solid rgba(0, 0, 0, .25);
+      border-radius: 2px;
+    }
+
+    .calculation-box {
+      margin-top: 22px;
+      padding: 18px 20px;
+      border: 1px solid #c9d1d8;
+      border-radius: 10px;
+      background: #f5f7f9;
+    }
+
+    code {
+      font-size: .95em;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+
+    th,
+    td {
+      padding: 9px;
+      border: 1px solid #c9d1d8;
+      text-align: center;
+    }
+
+    th {
+      background: #e9eef2;
+    }
+
+    .jspsych-btn,
+    .download-button {
+      margin: 8px;
+      padding: 12px 22px;
+      border: 1px solid #245b87;
+      border-radius: 8px;
+      background: #245b87;
+      color: #ffffff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .jspsych-btn:hover,
+    .download-button:hover {
+      background: #194666;
+    }
+
+    @media (max-width: 700px) {
+      .page {
+        width: 96vw;
+        padding: 14px 0;
+      }
+
+      .card {
+        padding: 18px;
+      }
+
+      .key-grid,
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .study-image {
+        max-height: 55vh;
+      }
+
+      .test-word {
+        min-height: 34vh;
+      }
+
+      .touch-response-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .touch-response-button {
+        min-height: 88px;
+        font-size: 25px;
+      }
+    }
+  </style>
+</head>
+
+<body></body>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Word Cloud Memory Recognition Task
+   A word cloud is studied for 20 seconds.
+   Test words are shown for up to 2 seconds while responses are accepted.
+   ============================================================ */
+
+/*
+  Correct answers from the supplied word-memory worksheet:
+  true  = the test word was present in the studied list
+  false = the test word was absent from the studied list
+*/
+
+const testWords = [
+  "Gyrus", "Axon", "Neuron", "Parietal", "Dendrite",
+  "Synapse", "Oligodendrocyte", "Hypothalamus", "Thalamus", "Metencephalon",
+  "Myelencephalon", "Midbrain", "Nucleus", "Ganglia", "Temporal",
+  "Frontal", "Broca", "Wernicke", "Colliculi", "Dorsal"
+];
+
+const answerKey = [
+  true,  true,  false, true,  false,
+  true,  true,  false, true,  true,
+  false, false, false, true,  false,
+  true,  false, true,  false, false
+];
+
+const N_TRIALS = answerKey.length;
+const WORD_CLOUD_URL =
+  "https://cognitiontools.github.io/neur2020/memory/assets/word_cloud.png";
+const STUDY_DURATION_MS = 20000;
+const WORD_DURATION_MS = 2000;
+
+let responseMode = null;
+
+const jsPsych = initJsPsych({
+  on_finish: showResults
+});
+
+const chooseResponseMode = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div class="page">
+      <div class="card">
+        <h1>Choose your response method</h1>
+        <p>Select how you will answer during the recognition test.</p>
+
+        <div class="key-grid">
+          <div class="key-box">
+            <span class="key">⌨</span>
+            Keyboard
+            <p style="font-size:16px; margin-bottom:0;">
+              Use F for absent and J for present.
+            </p>
+          </div>
+
+          <div class="key-box">
+            <span class="key">☝</span>
+            Touchscreen
+            <p style="font-size:16px; margin-bottom:0;">
+              Use the on-screen Absent and Present buttons.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>`,
+  choices: ["Keyboard", "Touchscreen"],
+  on_finish: function(data) {
+    responseMode = data.response === 0 ? "keyboard" : "touchscreen";
+  }
+};
+
+const instructions = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: function() {
+    const responseInstructions = responseMode === "touchscreen"
+      ? `
+        <div class="key-grid">
+          <div class="key-box">
+            <span class="key">Tap</span>
+            Absent
+          </div>
+          <div class="key-box">
+            <span class="key">Tap</span>
+            Present
+          </div>
+        </div>`
+      : `
+        <div class="key-grid">
+          <div class="key-box">
+            <span class="key">F</span>
+            Absent
+          </div>
+          <div class="key-box">
+            <span class="key">J</span>
+            Present
+          </div>
+        </div>`;
+
+    return `
+      <div class="page">
+        <div class="card">
+          <h1>Word Cloud Memory Task</h1>
+
+          <p>
+            First, study a word cloud for <strong>20 seconds</strong>.
+            Try to remember as many words as possible.
+          </p>
+
+          <p>
+            You will then see a series of test words.
+            Each test word will be displayed for up to <strong>2 seconds</strong>.
+            Respond while the word is still on screen. The trial will end
+            immediately after your response.
+          </p>
+
+          ${responseInstructions}
+
+          <p>
+            You must respond within the 2-second word display.
+            Trials without a response will be recorded as omissions.
+          </p>
+        </div>
+      </div>`;
+  },
+  choices: ["Begin task"]
+};
+
+const fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: true,
+  message: `
+    <div class="page">
+      <div class="card">
+        <h2>Enter full screen</h2>
+        <p>The word cloud will appear after a short countdown.</p>
+      </div>
+    </div>`,
+  button_label: "Enter full screen"
+};
+
+const preloadAssets = {
+  type: jsPsychPreload,
+  images: [WORD_CLOUD_URL],
+  message: `
+    <div class="page">
+      <div class="card">
+        <h2>Loading task</h2>
+        <p>Please wait while the word cloud is loaded.</p>
+      </div>
+    </div>`,
+  show_progress_bar: true,
+  continue_after_error: false
+};
+
+const countdown = {
+  timeline: [
+    {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<div class="fixation">3</div>',
+      choices: "NO_KEYS",
+      trial_duration: 700
+    },
+    {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<div class="fixation">2</div>',
+      choices: "NO_KEYS",
+      trial_duration: 700
+    },
+    {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<div class="fixation">1</div>',
+      choices: "NO_KEYS",
+      trial_duration: 700
+    }
+  ]
+};
+
+const studyWordCloud = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page">
+      <div class="card">
+        <img
+          class="study-image"
+          src="${WORD_CLOUD_URL}"
+          alt="Word cloud to study"
+          draggable="false"
+        >
+        <div class="study-timer">
+          Study the words. This image will remain for 20 seconds.
+        </div>
+      </div>
+    </div>`,
+  choices: "NO_KEYS",
+  trial_duration: STUDY_DURATION_MS,
+  data: {
+    task: "word_cloud_study",
+    duration_ms: STUDY_DURATION_MS
+  }
+};
+
+const retentionScreen = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div class="page">
+      <div class="card trial-screen">
+        <h2>The recognition test will now begin</h2>
+        <p>Remember: decide whether each word was present or absent.</p>
+      </div>
+    </div>`,
+  choices: "NO_KEYS",
+  trial_duration: 1500
+};
+
+const recognitionTimeline = [];
+
+testWords.forEach((word, index) => {
+  const wasPresent = answerKey[index];
+
+  recognitionTimeline.push({
+    type: jsPsychHtmlKeyboardResponse,
+
+    stimulus: function() {
+      const controls = responseMode === "touchscreen"
+        ? `
+          <div class="touch-response-grid">
+            <button
+              type="button"
+              class="touch-response-button"
+              data-response="f"
+              aria-label="Absent"
+            >
+              Absent
+            </button>
+
+            <button
+              type="button"
+              class="touch-response-button"
+              data-response="j"
+              aria-label="Present"
+            >
+              Present
+            </button>
+          </div>`
+        : `
+          <div class="response-reminder">
+            Press <strong>F</strong> for absent
+            &nbsp;&nbsp;or&nbsp;&nbsp;
+            <strong>J</strong> for present
+          </div>`;
+
+      return `
+        <div class="page">
+          <div class="card trial-screen">
+            <div class="test-word">${word}</div>
+
+            ${controls}
+
+            <div class="progress">
+              Word ${index + 1} of ${N_TRIALS}
+            </div>
+          </div>
+        </div>`;
+    },
+
+    choices: function() {
+      return responseMode === "keyboard" ? ["f", "j"] : "NO_KEYS";
+    },
+
+    trial_duration: WORD_DURATION_MS,
+    response_ends_trial: true,
+
+    data: {
+      task: "word_memory",
+      trial_number: index + 1,
+      test_word: word,
+      presentation_duration_ms: WORD_DURATION_MS,
+      correct_answer: wasPresent ? "present" : "absent",
+      signal_present: wasPresent ? 1 : 0
+    },
+
+    on_load: function() {
+      if (responseMode !== "touchscreen") return;
+
+      const responseStartTime = performance.now();
+      const buttons = document.querySelectorAll(".touch-response-button");
+      let responseMade = false;
+
+      buttons.forEach(button => {
+        button.addEventListener("pointerup", function(event) {
+          event.preventDefault();
+
+          if (responseMade) return;
+          responseMade = true;
+
+          buttons.forEach(item => {
+            item.disabled = true;
+          });
+
+          jsPsych.finishTrial({
+            response: this.dataset.response,
+            rt: performance.now() - responseStartTime,
+            response_method: "touchscreen"
+          });
+        });
+      });
+    },
+
+    on_finish: function(data) {
+      data.selected_response_mode = responseMode;
+
+      if (!data.response_method) {
+        data.response_method =
+          data.response === null ? "none" : "keyboard";
+      }
+
+      if (data.response === null) {
+        data.response_label = "no_response";
+        data.response_binary = null;
+        data.correct = false;
+        data.sdt_outcome = "Omission";
+        return;
+      }
+
+      data.response_label = data.response === "j" ? "present" : "absent";
+      data.response_binary = data.response === "j" ? 1 : 0;
+      data.correct = data.response_label === data.correct_answer;
+
+      if (data.signal_present === 1 && data.response_binary === 1) {
+        data.sdt_outcome = "Hit";
+      } else if (data.signal_present === 1 && data.response_binary === 0) {
+        data.sdt_outcome = "Miss";
+      } else if (data.signal_present === 0 && data.response_binary === 1) {
+        data.sdt_outcome = "False alarm";
+      } else {
+        data.sdt_outcome = "Correct rejection";
+      }
+    },
+
+    post_trial_gap: 250
+  });
+});
+
+const leaveFullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: false
+};
+
+/* ---------------- SDT calculations ---------------- */
+
+function inverseNormalCDF(p) {
+  const a = [
+    -39.6968302866538, 220.946098424521, -275.928510446969,
+    138.357751867269, -30.6647980661472, 2.50662827745924
+  ];
+
+  const b = [
+    -54.4760987982241, 161.585836858041, -155.698979859887,
+    66.8013118877197, -13.2806815528857
+  ];
+
+  const c = [
+    -0.00778489400243029, -0.322396458041136,
+    -2.40075827716184, -2.54973253934373,
+    4.37466414146497, 2.93816398269878
+  ];
+
+  const d = [
+    0.00778469570904146, 0.32246712907004,
+    2.445134137143, 3.75440866190742
+  ];
+
+  const low = 0.02425;
+  const high = 1 - low;
+  let q, r;
+
+  if (p < low) {
+    q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+      ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+  }
+
+  if (p <= high) {
+    q = p - 0.5;
+    r = q * q;
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5]) * q /
+      (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  }
+
+  q = Math.sqrt(-2 * Math.log(1-p));
+  return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+    ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+
+function calculateSDT(rows) {
+  const hits = rows.filter(r => r.sdt_outcome === "Hit").length;
+  const misses = rows.filter(r => r.sdt_outcome === "Miss").length;
+  const falseAlarms = rows.filter(r => r.sdt_outcome === "False alarm").length;
+  const correctRejections = rows.filter(r => r.sdt_outcome === "Correct rejection").length;
+  const omissions = rows.filter(r => r.sdt_outcome === "Omission").length;
+
+  const signalTrials = hits + misses;
+  const noiseTrials = falseAlarms + correctRejections;
+
+  const hitRate = (hits + 0.5) / (signalTrials + 1);
+  const falseAlarmRate = (falseAlarms + 0.5) / (noiseTrials + 1);
+
+  const zHit = inverseNormalCDF(hitRate);
+  const zFA = inverseNormalCDF(falseAlarmRate);
+
+  return {
+    hits,
+    misses,
+    falseAlarms,
+    correctRejections,
+    omissions,
+    signalTrials,
+    noiseTrials,
+    hitRate,
+    falseAlarmRate,
+    zHit,
+    zFA,
+    dPrime: zHit - zFA,
+    criterion: -0.5 * (zHit + zFA)
+  };
+}
+
+/* ---------------- CSV export ---------------- */
+
+function csvEscape(value) {
+  const text = value === null || value === undefined ? "" : String(value);
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function downloadResults(rows, sdt) {
+  const columns = [
+    "trial_number",
+    "test_word",
+    "correct_answer",
+    "response_label",
+    "selected_response_mode",
+    "response_method",
+    "correct",
+    "sdt_outcome",
+    "rt"
+  ];
+
+  const lines = [columns.map(csvEscape).join(",")];
+
+  rows.forEach(row => {
+    lines.push(columns.map(column => csvEscape(row[column])).join(","));
+  });
+
+  lines.push("");
+  lines.push("summary_measure,value");
+  lines.push(`hits,${sdt.hits}`);
+  lines.push(`misses,${sdt.misses}`);
+  lines.push(`false_alarms,${sdt.falseAlarms}`);
+  lines.push(`correct_rejections,${sdt.correctRejections}`);
+  lines.push(`omissions,${sdt.omissions}`);
+  lines.push(`signal_trials_with_response,${sdt.signalTrials}`);
+  lines.push(`noise_trials_with_response,${sdt.noiseTrials}`);
+  lines.push(`hit_rate,${sdt.hitRate}`);
+  lines.push(`false_alarm_rate,${sdt.falseAlarmRate}`);
+  lines.push(`d_prime,${sdt.dPrime}`);
+  lines.push(`criterion_c,${sdt.criterion}`);
+
+  const blob = new Blob([lines.join("\n")], {
+    type: "text/csv;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "word_memory_results.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+
+/* ---------------- SDT distribution plot ---------------- */
+
+function normalPDF(x, mean = 0, sd = 1) {
+  const z = (x - mean) / sd;
+  return Math.exp(-0.5 * z * z) / (sd * Math.sqrt(2 * Math.PI));
+}
+
+function drawSDTPlot(sdt) {
+  const canvas = document.getElementById("sdtCanvas");
+  if (!canvas) return;
+
+  const parentWidth = canvas.parentElement.clientWidth || 800;
+  const width = Math.max(520, parentWidth);
+  const height = 420;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const margin = { left: 58, right: 24, top: 34, bottom: 58 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const baselineY = margin.top + plotHeight;
+
+  const noiseMean = 0;
+  const signalMean = sdt.dPrime;
+  const criterionLocation = sdt.criterion + (sdt.dPrime / 2);
+
+  const xMin = Math.min(-4, signalMean - 4, criterionLocation - 1);
+  const xMax = Math.max(4, signalMean + 4, criterionLocation + 1);
+  const yMax = normalPDF(0) * 1.12;
+
+  const xToPx = x => margin.left + ((x - xMin) / (xMax - xMin)) * plotWidth;
+  const yToPx = y => baselineY - (y / yMax) * plotHeight;
+
+  function fillRegion(mean, startX, endX, fillStyle) {
+    const from = Math.max(xMin, startX);
+    const to = Math.min(xMax, endX);
+    if (to <= from) return;
+
+    const steps = 220;
+    ctx.beginPath();
+    ctx.moveTo(xToPx(from), baselineY);
+
+    for (let i = 0; i <= steps; i++) {
+      const x = from + ((to - from) * i / steps);
+      ctx.lineTo(xToPx(x), yToPx(normalPDF(x, mean)));
+    }
+
+    ctx.lineTo(xToPx(to), baselineY);
+    ctx.closePath();
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+  }
+
+  function drawCurve(mean, strokeStyle) {
+    const steps = 440;
+    ctx.beginPath();
+
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + ((xMax - xMin) * i / steps);
+      const px = xToPx(x);
+      const py = yToPx(normalPDF(x, mean));
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+  }
+
+  fillRegion(noiseMean, xMin, criterionLocation, "rgba(77,121,190,.35)");
+  fillRegion(noiseMean, criterionLocation, xMax, "rgba(236,153,75,.35)");
+  fillRegion(signalMean, xMin, criterionLocation, "rgba(214,90,90,.30)");
+  fillRegion(signalMean, criterionLocation, xMax, "rgba(74,160,101,.35)");
+
+  drawCurve(noiseMean, "rgb(52,86,142)");
+  drawCurve(signalMean, "rgb(45,126,73)");
+
+  ctx.strokeStyle = "#4a535b";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, baselineY);
+  ctx.lineTo(width - margin.right, baselineY);
+  ctx.stroke();
+
+  ctx.setLineDash([7, 5]);
+  ctx.strokeStyle = "#20262b";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(xToPx(criterionLocation), margin.top);
+  ctx.lineTo(xToPx(criterionLocation), baselineY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#20262b";
+  ctx.font = "14px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("Decision criterion", xToPx(criterionLocation), margin.top - 10);
+
+  const tickStart = Math.ceil(xMin);
+  const tickEnd = Math.floor(xMax);
+  ctx.font = "13px Arial";
+  ctx.fillStyle = "#4a535b";
+
+  for (let tick = tickStart; tick <= tickEnd; tick++) {
+    const px = xToPx(tick);
+    ctx.beginPath();
+    ctx.moveTo(px, baselineY);
+    ctx.lineTo(px, baselineY + 6);
+    ctx.strokeStyle = "#4a535b";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillText(String(tick), px, baselineY + 23);
+  }
+
+  ctx.font = "bold 14px Arial";
+  ctx.fillStyle = "rgb(52,86,142)";
+  ctx.fillText("Noise", xToPx(noiseMean), yToPx(normalPDF(noiseMean)) - 10);
+
+  ctx.fillStyle = "rgb(45,126,73)";
+  ctx.fillText("Signal", xToPx(signalMean), yToPx(normalPDF(signalMean)) - 10);
+
+  ctx.fillStyle = "#20262b";
+  ctx.font = "14px Arial";
+  ctx.fillText("Internal response / evidence", margin.left + plotWidth / 2, height - 15);
+}
+
+/* ---------------- Results screen ---------------- */
+
+function showResults() {
+  const rows = jsPsych.data
+    .get()
+    .filter({ task: "word_memory" })
+    .values();
+
+  const sdt = calculateSDT(rows);
+  const accuracy = rows.filter(r => r.correct).length / rows.length;
+  const respondedRows = rows.filter(r => Number.isFinite(r.rt));
+  const meanRT = respondedRows.length > 0
+    ? respondedRows.reduce((sum, row) => sum + row.rt, 0) / respondedRows.length
+    : null;
+
+  const tableRows = rows.map(row => `
+    <tr>
+      <td>${row.trial_number}</td>
+      <td>${row.test_word}</td>
+      <td>${row.correct_answer === "present" ? "Present" : "Absent"}</td>
+      <td>${
+        row.response_label === "present"
+          ? "Present"
+          : row.response_label === "absent"
+            ? "Absent"
+            : "No response"
+      }</td>
+      <td>${row.sdt_outcome}</td>
+      <td>${row.sdt_outcome === "Omission" ? "No response" : (row.correct ? "Correct" : "Incorrect")}</td>
+      <td>${Number.isFinite(row.rt) ? `${Math.round(row.rt)} ms` : "—"}</td>
+    </tr>
+  `).join("");
+
+  document.body.innerHTML = `
+    <div class="page">
+      <div class="card">
+        <h1>Word Memory Results</h1>
+
+        <div class="results-grid">
+          <div class="metric">
+            <div class="metric-label">Accuracy</div>
+            <div class="metric-value">${(accuracy * 100).toFixed(1)}%</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">Mean RT</div>
+            <div class="metric-value">${meanRT === null ? "—" : `${Math.round(meanRT)} ms`}</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">d′</div>
+            <div class="metric-value">${sdt.dPrime.toFixed(2)}</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">Criterion, c</div>
+            <div class="metric-value">${sdt.criterion.toFixed(2)}</div>
+          </div>
+        </div>
+
+        <div class="results-grid">
+          <div class="metric">
+            <div class="metric-label">Hits</div>
+            <div class="metric-value">${sdt.hits}</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">Misses</div>
+            <div class="metric-value">${sdt.misses}</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">False alarms</div>
+            <div class="metric-value">${sdt.falseAlarms}</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">Correct rejections</div>
+            <div class="metric-value">${sdt.correctRejections}</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">Omissions</div>
+            <div class="metric-value">${sdt.omissions}</div>
+          </div>
+        </div>
+
+        <details id="graphDetails" style="margin-top:22px;">
+          <summary><strong>Show signal detection graph</strong></summary>
+
+          <h2 style="margin-top:22px;">Signal detection distributions</h2>
+
+          <p>
+            The noise distribution represents words that were absent from the study list.
+            The signal distribution represents words that were present. The vertical line
+            shows the participant's estimated decision criterion.
+          </p>
+
+          <div class="chart-wrap">
+            <canvas id="sdtCanvas"></canvas>
+          </div>
+
+          <div class="legend">
+            <span class="legend-item">
+              <span class="legend-swatch" style="background:rgba(77,121,190,.35)"></span>
+              Correct rejection
+            </span>
+            <span class="legend-item">
+              <span class="legend-swatch" style="background:rgba(236,153,75,.35)"></span>
+              False alarm
+            </span>
+            <span class="legend-item">
+              <span class="legend-swatch" style="background:rgba(214,90,90,.30)"></span>
+              Miss
+            </span>
+            <span class="legend-item">
+              <span class="legend-swatch" style="background:rgba(74,160,101,.35)"></span>
+              Hit
+            </span>
+          </div>
+        </details>
+
+        <div class="calculation-box">
+          <h3>SDT calculations</h3>
+
+          <p>
+            Corrected hit rate =
+            <code>(${sdt.hits} + 0.5) / (${sdt.signalTrials} + 1)</code>
+            = <strong>${sdt.hitRate.toFixed(3)}</strong>
+          </p>
+
+          <p>
+            Corrected false-alarm rate =
+            <code>(${sdt.falseAlarms} + 0.5) / (${sdt.noiseTrials} + 1)</code>
+            = <strong>${sdt.falseAlarmRate.toFixed(3)}</strong>
+          </p>
+
+          <p>
+            <code>d′ = z(HR) − z(FAR)</code>
+            = ${sdt.zHit.toFixed(3)} − ${sdt.zFA.toFixed(3)}
+            = <strong>${sdt.dPrime.toFixed(2)}</strong>
+          </p>
+
+          <p>
+            <code>c = −0.5[z(HR) + z(FAR)]</code>
+            = <strong>${sdt.criterion.toFixed(2)}</strong>
+          </p>
+
+          <p>
+            Positive c indicates a conservative bias toward responding “Absent”.
+            Negative c indicates a liberal bias toward responding “Present”.
+          </p>
+        </div>
+
+        <details style="margin-top:22px;">
+          <summary><strong>Show trial-level results</strong></summary>
+
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Trial</th>
+                  <th>Test word</th>
+                  <th>Correct answer</th>
+                  <th>Response</th>
+                  <th>SDT outcome</th>
+                  <th>Accuracy</th>
+                  <th>RT</th>
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        </details>
+
+        <div style="margin-top:22px;">
+          <button id="download" class="download-button">
+            Download CSV results
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const graphDetails = document.getElementById("graphDetails");
+
+  graphDetails.addEventListener("toggle", () => {
+    if (graphDetails.open) {
+      requestAnimationFrame(() => drawSDTPlot(sdt));
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (graphDetails.open) {
+      drawSDTPlot(sdt);
+    }
+  });
+
+  document.getElementById("download").addEventListener("click", () => {
+    downloadResults(rows, sdt);
+  });
+}
+
+/* ---------------- Run task ---------------- */
+
+jsPsych.run([
+  chooseResponseMode,
+  instructions,
+  fullscreen,
+  preloadAssets,
+  countdown,
+  studyWordCloud,
+  retentionScreen,
+  ...recognitionTimeline,
+  leaveFullscreen
+]);
+</script>
+</html>
