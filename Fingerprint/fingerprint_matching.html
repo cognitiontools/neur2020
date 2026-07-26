@@ -98,7 +98,71 @@
 
     .response-reminder {
       font-size: 24px;
-      margin: 20px 0;
+      margin: 20px 0 14px;
+    }
+
+    .touch-response-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      width: min(700px, 90vw);
+      margin: 18px auto 8px;
+    }
+
+    .touch-response-button {
+      min-height: 88px;
+      border: 2px solid #245b87;
+      border-radius: 12px;
+      background: #245b87;
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .touch-response-button:active {
+      transform: scale(0.98);
+      background: #194666;
+    }
+
+    @media (pointer: coarse), (max-width: 900px) {
+      .page {
+        width: min(960px, 96vw);
+        padding: 14px 0;
+      }
+
+      .card {
+        padding: 18px;
+      }
+
+      .trial-number {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+
+      .fingerprint-image {
+        width: min(900px, 94vw);
+        max-height: 52vh;
+        margin-bottom: 14px;
+      }
+
+      .response-reminder {
+        font-size: 20px;
+      }
+
+      .touch-response-button {
+        min-height: 100px;
+        font-size: 28px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .touch-response-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .progress {
@@ -258,6 +322,9 @@ const answerKey = [
 
 const N_TRIALS = answerKey.length;
 
+// Set on the opening device-selection screen.
+let responseMode = null;
+
 const IMAGE_BASE_URL =
   "https://cognitiontools.github.io/neur2020/Fingerprint/print_pairs/";
 
@@ -270,18 +337,66 @@ const jsPsych = initJsPsych({
   on_finish: showResults
 });
 
-const instructions = {
+const chooseResponseMode = {
   type: jsPsychHtmlButtonResponse,
   stimulus: `
     <div class="page">
       <div class="card">
-        <h1>Fingerprint Matching Task</h1>
+        <h1>Choose your response method</h1>
 
         <p>
-          A fingerprint pair will be shown on each trial.
-          Decide whether the fingerprints match or are different.
+          Select how you will respond during this task.
+          This choice determines whether response buttons are shown on screen.
         </p>
 
+        <div class="key-grid">
+          <div class="key-box">
+            <span class="key">⌨</span>
+            Keyboard
+            <p style="font-size:16px; margin-bottom:0;">
+              Use F for no match and J for match.
+            </p>
+          </div>
+
+          <div class="key-box">
+            <span class="key">☝</span>
+            Touchscreen
+            <p style="font-size:16px; margin-bottom:0;">
+              Tap the on-screen response buttons.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>`,
+  choices: ["Keyboard", "Touchscreen"],
+
+  on_finish: function(data) {
+    responseMode = data.response === 0 ? "keyboard" : "touchscreen";
+  }
+};
+
+const instructions = {
+  type: jsPsychHtmlButtonResponse,
+
+  stimulus: function() {
+    const responseInstructions = responseMode === "touchscreen"
+      ? `
+        <div class="key-grid">
+          <div class="key-box">
+            <span class="key">Tap</span>
+            No match
+          </div>
+
+          <div class="key-box">
+            <span class="key">Tap</span>
+            Match
+          </div>
+        </div>
+
+        <p>
+          Use the two on-screen buttons shown below each fingerprint image.
+        </p>`
+      : `
         <div class="key-grid">
           <div class="key-box">
             <span class="key">F</span>
@@ -296,16 +411,29 @@ const instructions = {
 
         <p>
           Keep your index fingers resting on the F and J keys.
-          Respond once for each fingerprint image.
-        </p>
+        </p>`;
 
-        <p>
-          Each trial will move on immediately after you press F or J.
-          If no response is made within 5 seconds, the trial will be recorded
-          as an omission and the task will continue.
-        </p>
-      </div>
-    </div>`,
+    return `
+      <div class="page">
+        <div class="card">
+          <h1>Fingerprint Matching Task</h1>
+
+          <p>
+            A fingerprint pair will be shown on each trial.
+            Decide whether the fingerprints match or are different.
+          </p>
+
+          ${responseInstructions}
+
+          <p>
+            Each trial will end immediately after your response.
+            If no response is made within 5 seconds, the trial will be recorded
+            as an omission and the task will continue.
+          </p>
+        </div>
+      </div>`;
+  },
+
   choices: ["Begin task"]
 };
 
@@ -373,40 +501,74 @@ const responseTrials = answerKey.map((isMatch, index) => {
   return {
     type: jsPsychHtmlKeyboardResponse,
 
-    stimulus: `
-      <div class="page">
-        <div class="card trial-screen">
-          <div class="trial-number">Trial ${index + 1}</div>
+    stimulus: function() {
+      const responseControls = responseMode === "touchscreen"
+        ? `
+          <div class="response-reminder">
+            Tap your response:
+          </div>
 
-          <img
-            class="fingerprint-image"
-            src="${imageUrl}"
-            alt="Fingerprint pair ${index + 1}"
-            onerror="
-              this.style.display='none';
-              this.insertAdjacentHTML(
-                'afterend',
-                '<div class=&quot;image-error&quot;>' +
-                '<strong>Image could not be loaded.</strong><br>' +
-                '${imageUrl}' +
-                '</div>'
-              );
-            "
-          >
+          <div class="touch-response-grid">
+            <button
+              type="button"
+              class="touch-response-button"
+              data-response="f"
+              aria-label="No match"
+            >
+              No match
+            </button>
 
+            <button
+              type="button"
+              class="touch-response-button"
+              data-response="j"
+              aria-label="Match"
+            >
+              Match
+            </button>
+          </div>`
+        : `
           <div class="response-reminder">
             Press <strong>F</strong> for no match
             &nbsp;&nbsp;or&nbsp;&nbsp;
             <strong>J</strong> for match
-          </div>
+          </div>`;
 
-          <div class="progress">
-            Trial ${index + 1} of ${N_TRIALS}
-          </div>
-        </div>
-      </div>`,
+      return `
+        <div class="page">
+          <div class="card trial-screen">
+            <div class="trial-number">Trial ${index + 1}</div>
 
-    choices: ["f", "j"],
+            <img
+              class="fingerprint-image"
+              src="${imageUrl}"
+              alt="Fingerprint pair ${index + 1}"
+              draggable="false"
+              onerror="
+                this.style.display='none';
+                this.insertAdjacentHTML(
+                  'afterend',
+                  '<div class=&quot;image-error&quot;>' +
+                  '<strong>Image could not be loaded.</strong><br>' +
+                  '${imageUrl}' +
+                  '</div>'
+                );
+              "
+            >
+
+            ${responseControls}
+
+            <div class="progress">
+              Trial ${index + 1} of ${N_TRIALS}
+            </div>
+          </div>
+        </div>`;
+    },
+
+    choices: function() {
+      return responseMode === "keyboard" ? ["f", "j"] : "NO_KEYS";
+    },
+
     trial_duration: 5000,
     response_ends_trial: true,
 
@@ -418,7 +580,41 @@ const responseTrials = answerKey.map((isMatch, index) => {
       signal_present: isMatch ? 1 : 0
     },
 
+    on_load: function() {
+      if (responseMode !== "touchscreen") return;
+
+      const trialStartTime = performance.now();
+      const buttons = document.querySelectorAll(".touch-response-button");
+      let responseMade = false;
+
+      buttons.forEach(button => {
+        button.addEventListener("pointerup", function(event) {
+          event.preventDefault();
+
+          if (responseMade) return;
+          responseMade = true;
+
+          buttons.forEach(item => {
+            item.disabled = true;
+          });
+
+          jsPsych.finishTrial({
+            response: this.dataset.response,
+            rt: performance.now() - trialStartTime,
+            response_method: "touchscreen"
+          });
+        });
+      });
+    },
+
     on_finish: function(data) {
+      if (!data.response_method) {
+        data.response_method =
+          data.response === null ? "none" : "keyboard";
+      }
+
+      data.selected_response_mode = responseMode;
+
       if (data.response === null) {
         data.response_label = "no_response";
         data.response_binary = null;
@@ -543,6 +739,8 @@ function downloadResults(rows, sdt) {
     "image_url",
     "correct_answer",
     "response_label",
+    "selected_response_mode",
+    "response_method",
     "correct",
     "sdt_outcome",
     "rt"
@@ -908,6 +1106,7 @@ function showResults() {
 /* ---------------- Run task ---------------- */
 
 jsPsych.run([
+  chooseResponseMode,
   instructions,
   fullscreen,
   preloadImages,
