@@ -349,15 +349,20 @@ const CONFIG = {
   spotPresentKey: "ArrowLeft"
 };
 
+const ASSET_VERSION = "1";
+
+const ASSET_BASE_URL =
+  "https://cognitiontools.github.io/neur2020/MSI_Exp/instruct/";
+
 const ASSETS = {
-  instruction1: "instruct_1.bmp",
-  instruction2: "instruct_2.bmp",
-  instruction3: "instruct_3.bmp",
-  instruction4: "instruct_4.bmp",
-  practiceIntro: "practice_intro.bmp",
-  actualIntro: "actual_intro.bmp",
-  target: "target.bmp",
-  break: "break.bmp"
+  instruction1: `${ASSET_BASE_URL}instruct_1.bmp?v=${ASSET_VERSION}`,
+  instruction2: `${ASSET_BASE_URL}instruct_2.bmp?v=${ASSET_VERSION}`,
+  instruction3: `${ASSET_BASE_URL}instruct_3.bmp?v=${ASSET_VERSION}`,
+  instruction4: `${ASSET_BASE_URL}instruct_4.bmp?v=${ASSET_VERSION}`,
+  practiceIntro: `${ASSET_BASE_URL}practice_intro.bmp?v=${ASSET_VERSION}`,
+  actualIntro: `${ASSET_BASE_URL}actual_intro.bmp?v=${ASSET_VERSION}`,
+  target: `${ASSET_BASE_URL}target.bmp?v=${ASSET_VERSION}`,
+  break: `${ASSET_BASE_URL}break.bmp?v=${ASSET_VERSION}`
 };
 
 const participantCode = Math.floor(Math.random() * 1000000) + 1;
@@ -1193,8 +1198,9 @@ function makeInstructionTrial(filename, pageNumber) {
     stimulus: assetScreen(
       filename,
       `Instruction page ${pageNumber}`,
-      `<p><strong>Instruction image not found:</strong> ${filename}</p>
-       <p>Place the original BMP file in the same folder as this HTML file.</p>
+      `<p><strong>Instruction image could not be loaded.</strong></p>
+       <p style="font-size:18px; overflow-wrap:anywhere;">${filename}</p>
+       <p>Check the filename, capitalisation, and GitHub Pages deployment.</p>
        <p>Press <kbd>Enter</kbd> to continue.</p>`
     ),
     choices: ["Enter"],
