@@ -8,6 +8,8 @@
   <!-- jsPsych 8 -->
   <script src="https://unpkg.com/jspsych@8.2.1"></script>
   <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-fullscreen@2.1.0"></script>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@8.2.1/css/jspsych.css">
 
@@ -86,8 +88,10 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 20px;
-      height: 20px;
+      width: 4vmin;
+      height: 4vmin;
+      min-width: 20px;
+      min-height: 20px;
       transform: translate(-50%, -50%);
     }
 
@@ -99,17 +103,19 @@
     }
 
     .fixation-cross::before {
-      width: 20px;
-      height: 2px;
+      width: 100%;
+      height: max(2px, .35vmin);
       left: 0;
-      top: 9px;
+      top: 50%;
+      transform: translateY(-50%);
     }
 
     .fixation-cross::after {
-      width: 2px;
-      height: 20px;
-      left: 9px;
+      width: max(2px, .35vmin);
+      height: 100%;
+      left: 50%;
       top: 0;
+      transform: translateX(-50%);
     }
 
     #msi-noise-canvas {
@@ -301,6 +307,27 @@
       }
     }
 
+  
+    html, body { overscroll-behavior: none; touch-action: manipulation; }
+    .device-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; width:min(760px,92vw); margin:26px auto 0; }
+    .device-choice { min-height:150px; padding:24px; border:2px solid #245b87; border-radius:14px; background:rgba(255,255,255,.88); font-family:Arial,sans-serif; font-size:24px; font-weight:700; cursor:pointer; touch-action:manipulation; }
+    .device-choice span { display:block; margin-top:10px; font-size:17px; font-weight:400; line-height:1.4; }
+    .landscape-gate { width:min(760px,92vw); margin:0 auto; padding:34px; border-radius:14px; background:rgba(255,255,255,.88); font-family:Arial,sans-serif; text-align:center; }
+    .rotate-icon { margin:12px 0; font-size:72px; line-height:1; }
+    .touch-response-panel { position:fixed; left:50%; bottom:2vh; z-index:20; display:grid; grid-template-columns:1fr 1fr; gap:18px; width:min(760px,92vw); transform:translateX(-50%); }
+    .touch-response-button { min-height:96px; padding:16px 20px; border:2px solid #245b87; border-radius:14px; background:#245b87; color:#fff; font-family:Arial,sans-serif; font-size:clamp(24px,4vw,34px); font-weight:700; cursor:pointer; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+    .touch-response-button:active { transform:scale(.98); background:#194666; }
+    .touch-response-button:disabled { opacity:.65; cursor:default; }
+    .response-image-wrap { width:100vw; height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:2vh 2vw 18vh; box-sizing:border-box; }
+    .response-image-wrap .asset-image { max-width:94vw; max-height:76vh; }
+    @media (max-width:700px) {
+      .device-grid { grid-template-columns:1fr; }
+      .touch-response-panel { grid-template-columns:1fr 1fr; gap:12px; width:96vw; }
+      .touch-response-button { min-height:84px; font-size:24px; }
+      .response-image-wrap { padding-bottom:20vh; }
+      .response-image-wrap .asset-image { max-height:70vh; }
+    }
+
   </style>
 </head>
 <body></body>
@@ -349,7 +376,7 @@ const CONFIG = {
   spotPresentKey: "ArrowLeft"
 };
 
-const ASSET_VERSION = "1";
+const ASSET_VERSION = "2";
 
 const ASSET_BASE_URL =
   "https://cognitiontools.github.io/neur2020/MSI_Exp/instruct/";
@@ -372,6 +399,7 @@ const selectedStimulusDurationMs =
   CONFIG.stimulusDurationMsByTimeCondition[CONFIG.timeCondition - 1];
 
 let audioContext = null;
+let responseMode = null;
 
 const jsPsych = initJsPsych({
   case_sensitive_responses: false,
@@ -405,6 +433,26 @@ function assetScreen(filename, altText, fallbackHtml) {
       >
       <div class="asset-fallback">${fallbackHtml}</div>
     </div>`;
+}
+
+
+function isLandscape() { return window.innerWidth >= window.innerHeight; }
+function waitForLandscape() {
+  return new Promise(resolve => {
+    if (isLandscape()) { resolve(); return; }
+    const check = () => {
+      if (isLandscape()) {
+        window.removeEventListener("resize", check);
+        window.removeEventListener("orientationchange", check);
+        resolve();
+      }
+    };
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", check);
+  });
+}
+function responseAssetScreen(filename, altText, fallbackHtml) {
+  return `<div class="response-image-wrap"><img class="asset-image" src="${filename}" alt="${altText}" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div class="asset-fallback">${fallbackHtml}</div></div>`;
 }
 
 function unlockAudio() {
@@ -1287,68 +1335,50 @@ function makeNoiseTrial(condition, phase) {
 
 function makeResponseTrial(condition, phase) {
   const isPractice = phase === "practice";
-
+  const responseStart = { value: null };
   return {
     type: jsPsychHtmlKeyboardResponse,
-    stimulus: assetScreen(
-      ASSETS.target,
-      "Response screen",
-      `<p><strong>Response image not found:</strong> ${ASSETS.target}</p>
-       <p>Use the <kbd>←</kbd> or <kbd>→</kbd> key according to the original response mapping.</p>`
-    ),
-    choices: ["ArrowLeft", "ArrowRight"],
-    data: {
-      task: "msi_tutorial",
-      phase: phase,
-      event: "response",
-      count: isPractice ? condition.practice_count : condition.count,
-      sound: condition.sound,
-      sound_label: condition.sound_label,
-      orient: condition.orient,
-      visual_stim: condition.visual_stim,
-      visual_stim_label: condition.visual_stim_label,
-      timing: condition.timing,
-      stimulus_onset_frame: condition.stimulus_onset_frame,
-      nominal_visual_onset_ms:
-        (condition.stimulus_onset_frame - 1) *
-        (1000 / CONFIG.virtualRefreshRate),
-      nominal_tone_onset_ms:
-        condition.stimulus_onset_frame *
-        (1000 / CONFIG.virtualRefreshRate),
-      location: condition.location,
-      location_label: condition.location_label,
-      visibility: condition.visibility,
-      visibility_alpha: isPractice
-        ? 1
-        : CONFIG.visibilityLevels[condition.visibility - 1]
+    stimulus: function() {
+      const controls = responseMode === "touchscreen" ? `<div class="touch-response-panel"><button type="button" class="touch-response-button" data-response="ArrowLeft">Present</button><button type="button" class="touch-response-button" data-response="ArrowRight">Absent</button></div>` : "";
+      return `${responseAssetScreen(ASSETS.target,"Response screen",`<p><strong>Response image not found:</strong> ${ASSETS.target}</p><p>Respond using Present or Absent.</p>`)}${controls}`;
     },
-    on_finish: function(data) {
-      data.response_visual = data.response;
-      data.response_visual_code = jsPsych.pluginAPI.compareKeys(
-        data.response,
-        "ArrowLeft"
-      ) ? 37 : 39;
-
-      const spotWasPresent = condition.visual_stim === 2;
-      const reportedPresent = jsPsych.pluginAPI.compareKeys(
-        data.response,
-        CONFIG.spotPresentKey
-      );
-
-      data.response_label = reportedPresent ? "Present" : "Absent";
-      data.reported_present = reportedPresent ? 1 : 0;
-      data.signal_present = spotWasPresent ? 1 : 0;
-      data.correct = spotWasPresent === reportedPresent;
-
-      if (spotWasPresent && reportedPresent) {
-        data.sdt_outcome = "Hit";
-      } else if (spotWasPresent && !reportedPresent) {
-        data.sdt_outcome = "Miss";
-      } else if (!spotWasPresent && reportedPresent) {
-        data.sdt_outcome = "False alarm";
-      } else {
-        data.sdt_outcome = "Correct rejection";
-      }
+    choices: function() { return responseMode === "keyboard" ? ["ArrowLeft","ArrowRight"] : "NO_KEYS"; },
+    data: {
+      task:"msi_tutorial", phase:phase, event:"response", count:isPractice ? condition.practice_count : condition.count,
+      sound:condition.sound, sound_label:condition.sound_label, orient:condition.orient,
+      visual_stim:condition.visual_stim, visual_stim_label:condition.visual_stim_label,
+      timing:condition.timing, stimulus_onset_frame:condition.stimulus_onset_frame,
+      nominal_visual_onset_ms:(condition.stimulus_onset_frame-1)*(1000/CONFIG.virtualRefreshRate),
+      nominal_tone_onset_ms:condition.stimulus_onset_frame*(1000/CONFIG.virtualRefreshRate),
+      location:condition.location, location_label:condition.location_label,
+      visibility:condition.visibility, visibility_alpha:isPractice ? 1 : CONFIG.visibilityLevels[condition.visibility-1]
+    },
+    on_load:function() {
+      responseStart.value=performance.now();
+      if (responseMode!=="touchscreen") return;
+      const buttons=document.querySelectorAll(".touch-response-button");
+      let responseMade=false;
+      buttons.forEach(button=>button.addEventListener("pointerup",function(event){
+        event.preventDefault(); if(responseMade)return; responseMade=true;
+        buttons.forEach(item=>item.disabled=true);
+        jsPsych.finishTrial({response:this.dataset.response,rt:performance.now()-responseStart.value,response_method:"touchscreen"});
+      }));
+    },
+    on_finish:function(data) {
+      data.selected_response_mode=responseMode;
+      if(!data.response_method) data.response_method=data.response===null?"none":"keyboard";
+      data.response_visual=data.response;
+      data.response_visual_code=jsPsych.pluginAPI.compareKeys(data.response,"ArrowLeft")?37:39;
+      const spotWasPresent=condition.visual_stim===2;
+      const reportedPresent=jsPsych.pluginAPI.compareKeys(data.response,CONFIG.spotPresentKey);
+      data.response_label=reportedPresent?"Present":"Absent";
+      data.reported_present=reportedPresent?1:0;
+      data.signal_present=spotWasPresent?1:0;
+      data.correct=spotWasPresent===reportedPresent;
+      if(spotWasPresent&&reportedPresent)data.sdt_outcome="Hit";
+      else if(spotWasPresent&&!reportedPresent)data.sdt_outcome="Miss";
+      else if(!spotWasPresent&&reportedPresent)data.sdt_outcome="False alarm";
+      else data.sdt_outcome="Correct rejection";
     }
   };
 }
@@ -1406,6 +1436,38 @@ function makeBreakTrial(completedTrials) {
 
 const timeline = [];
 
+const chooseResponseMode = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `<div class="plain-message"><h2>Choose your response method</h2><p>Select how you will respond during the task.</p></div>`,
+  choices:["Keyboard","Touchscreen"],
+  button_html:function(choice){
+    const details=choice==="Keyboard"?"Use the left arrow for Present and the right arrow for Absent.":"Use the large on-screen Present and Absent buttons.";
+    return `<button class="device-choice">${choice}<span>${details}</span></button>`;
+  },
+  on_finish:function(data){ responseMode=data.response===0?"keyboard":"touchscreen"; data.selected_response_mode=responseMode; unlockAudio(); }
+};
+const landscapeCheck = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus:function(){ return isLandscape()?`<div class="plain-message"><h2>Screen orientation ready</h2><p>The task will continue automatically.</p></div>`:`<div class="landscape-gate"><h2>Please rotate your device</h2><div class="rotate-icon">↻</div><p>This task must be completed in landscape orientation.</p><p>The task will continue automatically after rotation.</p></div>`; },
+  choices:"NO_KEYS",
+  trial_duration:function(){ return isLandscape()?500:null; },
+  on_load:function(){ if(!isLandscape()) waitForLandscape().then(()=>jsPsych.finishTrial({orientation_ready:true})); },
+  data:{task:"msi_tutorial",phase:"setup",event:"landscape_check"}
+};
+const preloadAssets = {
+  type:jsPsychPreload,
+  images:Object.values(ASSETS),
+  message:`<div class="plain-message"><h2>Loading task</h2><p>Please wait while the instruction and response images are loaded.</p></div>`,
+  show_progress_bar:true,
+  continue_after_error:false,
+  data:{task:"msi_tutorial",phase:"setup",event:"preload"}
+};
+
+
+timeline.push(chooseResponseMode);
+timeline.push(landscapeCheck);
+timeline.push(preloadAssets);
+
 timeline.push({
   type: jsPsychFullscreen,
   fullscreen_mode: true,
@@ -1413,7 +1475,7 @@ timeline.push({
     <div class="plain-message">
       <h2>NEUR2020 Multisensory Integration Tutorial</h2>
       <p>The task will run in full screen.</p>
-      <p>Use a laptop or desktop computer with a physical keyboard and sound enabled.</p>
+      <p>Use landscape orientation and ensure sound is enabled.</p><p>Your selected response method will be used throughout the task.</p>
     </div>`,
   button_label: "Enter full screen",
   data: {
