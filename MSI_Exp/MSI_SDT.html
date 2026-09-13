@@ -318,6 +318,11 @@
     .touch-response-button { min-height:96px; padding:16px 20px; border:2px solid #245b87; border-radius:14px; background:#245b87; color:#fff; font-family:Arial,sans-serif; font-size:clamp(24px,4vw,34px); font-weight:700; cursor:pointer; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
     .touch-response-button:active { transform:scale(.98); background:#194666; }
     .touch-response-button:disabled { opacity:.65; cursor:default; }
+    .tablet-navigation .asset-screen { padding-bottom: 100px; }
+    .tablet-navigation .asset-image { max-height: calc(96vh - 100px); }
+    .tablet-next-button { position: fixed; right: 4vw; bottom: 20px; z-index: 100; min-width: 140px; min-height: 56px; padding: 12px 28px; border: 2px solid #245b87; border-radius: 12px; background: #245b87; color: white; font-family: Arial, sans-serif; font-size: 24px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+    .tablet-next-button:active { background: #194666; }
+    .tablet-next-button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
     .response-image-wrap {position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; padding: 2vh 2vw; box-sizing: border-box; }
     .response-image-wrap .asset-image { display: block; max-width: 90vw; max-height: 82vh; width: auto; height: auto; object-fit: contain; margin: auto;}
     @media (max-width:700px) {
@@ -1240,8 +1245,37 @@ function startNoiseAnimation(canvas, condition, isPractice, animationRecord) {
    TRIAL BUILDERS
    -------------------------------------------------------------------------- */
 
+// Resolve the selected mode when the screen opens, after device selection.
+function withTabletNext(trial) {
+  const originalStimulus = trial.stimulus;
+  trial.stimulus = function() {
+    const content = typeof originalStimulus === "function"
+      ? originalStimulus() : originalStimulus;
+    if (responseMode !== "touchscreen") return content;
+    return `<div class="tablet-navigation">${content.replace(
+      /Press <kbd>Enter<\/kbd> to continue\.|Press the <kbd>Spacebar<\/kbd> when you are ready to continue\./g,
+      "Tap Next to continue."
+    )}<button type="button" id="tablet-next" class="tablet-next-button">Next</button></div>`;
+  };
+  const keyboardChoices = trial.choices;
+  trial.choices = function() {
+    return responseMode === "touchscreen" ? "NO_KEYS" : keyboardChoices;
+  };
+  trial.on_load = function() {
+    const button = document.getElementById("tablet-next");
+    if (!button) return;
+    const startedAt = performance.now();
+    button.addEventListener("click", function() {
+      button.disabled = true;
+      unlockAudio();
+      jsPsych.finishTrial({ response: "Next", rt: performance.now() - startedAt });
+    }, { once: true });
+  };
+  return trial;
+}
+
 function makeInstructionTrial(filename, pageNumber) {
-  return {
+  return withTabletNext({
     type: jsPsychHtmlKeyboardResponse,
     stimulus: assetScreen(
       filename,
@@ -1258,7 +1292,7 @@ function makeInstructionTrial(filename, pageNumber) {
       instruction_page: pageNumber
     },
     on_finish: unlockAudio
-  };
+  });
 }
 
 function makeFixationTrial(condition, phase) {
@@ -1390,7 +1424,7 @@ function addCompleteTrial(timeline, condition, phase) {
 }
 
 function makeIntroTrial(filename, phase, fallbackTitle) {
-  return {
+  return withTabletNext({
     type: jsPsychHtmlKeyboardResponse,
     stimulus: assetScreen(
       filename,
@@ -1406,11 +1440,11 @@ function makeIntroTrial(filename, phase, fallbackTitle) {
       event: "intro"
     },
     on_finish: unlockAudio
-  };
+  });
 }
 
 function makeBreakTrial(completedTrials) {
-  return {
+  return withTabletNext({
     type: jsPsychHtmlKeyboardResponse,
     stimulus: assetScreen(
       ASSETS.break,
@@ -1427,7 +1461,7 @@ function makeBreakTrial(completedTrials) {
       completed_trials: completedTrials
     },
     on_finish: unlockAudio
-  };
+  });
 }
 
 /* --------------------------------------------------------------------------
